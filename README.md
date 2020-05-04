@@ -473,135 +473,284 @@ public void setTeam(Team team) {
 
 양방향의 장점은 반대방향으로 객체 그래프 탐색이 가능하다는 것뿐이다. 단방향 매핑만으로도 테이블과 객체의 연관관계 매핑은 완료된다. 양방향을 사용하려면 객체 양쪽에서 관리가 필요하다.
 
-중요한 점은 비지니스 중요도를 생각해서 연관관계의 주인을 정하면 안된다. 단지 외래 키 관리자 정도의 의미를 부여해야 한다. 그리고 서로를 호출하지 않게 (무한루프) 조심해야 한다.## 5장 연관관계 매핑 기초
+중요한 점은 비지니스 중요도를 생각해서 연관관계의 주인을 정하면 안된다. 단지 외래 키 관리자 정도의 의미를 부여해야 한다. 그리고 서로를 호출하지 않게 (무한루프) 조심해야 한다.
+## 5장 연관관계 매핑 기초
                                                                                                      
-                                                                                                     - 양방향: 양쪽 모두 서로 참조 하는 것
-                                                                                                     - 단방향: 한쪽만 참조하는 것
-                                                                                                     - 연관관계의 주인: 객체를 양방향 연관관계로 만들면 연관관계의 주인을 정해야 한다.
-                                                                                                     
-                                                                                                     참조를 통한 연관관계는 언제나 단방향이다. 양방향으로 만들고 싶으면 각자 단방향 한 개씩 총 2개를 만들어야 한다.
-                                                                                                     
-                                                                                                     ### 객체 연관관계 vs 테이블 연관관계
-                                                                                                     
-                                                                                                     - 객체 연관관계: 객체는 참조로 연관관계를 맺는다.
-                                                                                                     - 테이블 연관관계: 테이블은 외래 키로 연관관계를 맺는다.
-                                                                                                     
-                                                                                                     ### 객체 관계 매핑
-                                                                                                     
-                                                                                                     @JoinColumn: 조인 컬럼은 외래키를 매핑할 때 사용한다. 
-                                                                                                     
-                                                                                                     이거를 생략을 하면 기본전략을 사용한다.
-                                                                                                     
-                                                                                                     기본전략: 필드명 + (언더바) + 참조하는 테이블의 컬럼명
-                                                                                                     
-                                                                                                     ```java
-                                                                                                     @ManyToOne
-                                                                                                     private Team team;
-                                                                                                     
-                                                                                                     team_TEAM_ID
-                                                                                                     ```
-                                                                                                     
-                                                                                                     ### 조회
-                                                                                                     
-                                                                                                     - 객체 그래프 탐색
-                                                                                                     
-                                                                                                     ```java
-                                                                                                     member.getTeam();
-                                                                                                     ```
-                                                                                                     
-                                                                                                     member와 연관된 team 엔티티를 조회할 수 있다.
-                                                                                                     
-                                                                                                     - 객체 지향 쿼리 사용
-                                                                                                     
-                                                                                                     ```java
-                                                                                                     String jpql = "select m from Member m join m.team t where t.name=:teamName
-                                                                                                     ```
-                                                                                                     
-                                                                                                     실제 수행되는 SQL 문보다 간결하게 쓸 수 있다.
-                                                                                                     
-                                                                                                     ### 양방향 연관관계
-                                                                                                     
-                                                                                                     Member.class
-                                                                                                     
-                                                                                                     ```java
-                                                                                                     @ManyToOne
-                                                                                                     @JoinColumn(name="TEAM_ID")
-                                                                                                     private Team team;
-                                                                                                     ```
-                                                                                                     
-                                                                                                     Team.class
-                                                                                                     
-                                                                                                     ```java
-                                                                                                     @OneToMany(mappedBy="team")
-                                                                                                     private List<Member> members = new ArrayList<>();
-                                                                                                     ```
-                                                                                                     
-                                                                                                     팀과 회원은 일대다 관계이므로 컬렉션을 추가했다. 
-                                                                                                     
-                                                                                                     ### 연관관계의 주인
-                                                                                                     
-                                                                                                     양방향은 서로 다른 단방향 두개 이므로 엄밀히 보면 양방향 연관관계는 없다. 하지만 앞서 언급한 것 처럼 디비 테이블은 외래 키 하나로 양방향 연관관계를 표현할 수 있다.
-                                                                                                     
-                                                                                                     객체 단방향 매핑에서는 연관관계를 관리하는 부분이 한 곳이기 때문에 이 참조로 외래키를 관리하면 되었지만 양방향에서는 참조가 두 곳이므로 차이가 발생한다. 그렇기 때문에 한 곳을 정해서 외래키를 관리하게 해야하는데 이것이 연관관계의 주인이라고 한다.
-                                                                                                     
-                                                                                                     연관관계의 주인만이 디비 연관관계에 매핑되고 외래 키를 관리(등록 수정 삭제)할 수 있다. → 주인이 아닌 쪽에 mappedBy 설정.
-                                                                                                     
-                                                                                                     Member 가 외래 키를 관리하면 Member 테이블 (자기 테이블) 에 있는 외래 키를 관리하면 된다. 하지만 Team이 외래 키를 관리하면 물리적으로 다른 테이블에 있는 외래 키를 관리해야 한다. 주인이 아닌 쪽은 읽기만 가능하고 외래 키 변경은 할 수 없다.
-                                                                                                     
-                                                                                                     참고로 항상 다 쪽이 외래키를 가진다. 그렇기 때문에 @ManyToOne에는 mappedBy 속성이 없다.
-                                                                                                     
-                                                                                                     ### 양방향의 주의점
-                                                                                                     
-                                                                                                     ```java
-                                                                                                     team.getMembers().add(member1);
-                                                                                                     ```
-                                                                                                     
-                                                                                                     주인이 아닌 쪽에 값을 입력하면 무시된다. 
-                                                                                                     
-                                                                                                     흔히 하는 실수는 연관관계의 주인에는 값을 입력하지 않고 주인이 아닌쪽에 값을 입력하는 것이다. 
-                                                                                                     
-                                                                                                     ```java
-                                                                                                     Memeber member = new Member("...");
-                                                                                                     
-                                                                                                     Team team = new Team("...");
-                                                                                                     team.getMembers().add(member);
-                                                                                                     ```
-                                                                                                     
-                                                                                                     디비조회를 해보면 member의 team은 null이다. 연관관계의 주인이 아닌쪽에서만 값을 지정했기 때문이다.
-                                                                                                     
-                                                                                                     ### 실제 쓰임새
-                                                                                                     
-                                                                                                     객체 관점에서는 양쪽 방향에 값을 다 입력해주어야 안전하다. JPA를 사용하지 않고 코드 단에서만 테스트할 때 문제가 발생한다. 그렇기 때문에 코드를 작성할 때는 양쪽 다 해주자.
-                                                                                                     
-                                                                                                     ### 연관관계 편의 메서드
-                                                                                                     
-                                                                                                     양쪽 다 설정을 해주어야 하는 상황에서 실수로 빼먹을 수 있다. 그렇기 때문에 setter 메서드에서 편의메서드를 작성한다.
-                                                                                                     
-                                                                                                     ```java
-                                                                                                     public void setTeam(Team team) {
-                                                                                                     	this.team = team;
-                                                                                                     	team.getMembers().add(this);
-                                                                                                     }
-                                                                                                     ```
-                                                                                                     
-                                                                                                     라고만 생각하면 오산이다. (버그가 있다)
-                                                                                                     
-                                                                                                     ```java
-                                                                                                     public void setTeam(Team team) {
-                                                                                                     	if (this.team != null) {
-                                                                                                     		this.team.getMembers().remove(this);
-                                                                                                     	}
-                                                                                                     	this.team = team;
-                                                                                                     	team.getMembers().add(this);
-                                                                                                     }
-                                                                                                     ```
-                                                                                                     
-                                                                                                     바로 위처럼 삭제되지 않은 연관관계를 제거하는것이 빠졌다. 기존의 관계가 있다면 그것을 먼저 끊어주고나서 새로운 관계를 맺어야한다.
-                                                                                                     
-                                                                                                     그렇기 때문에 객체에서 양방향 관계를 사용하면 로직을 견고하게 작성해야 한다. 위의 예제에서 team은 연관관계의 주인이 아니기 때문에 디비에 반영이 되지는 않는다. 연관관계의 주인인 member가 team을 참조하게 바뀌었으므로 정상반영이 되기는 한다. 하지만 반영이후 영속성 컨텍스트가 살아있는 상태에서 team의 getMember를 하면 기존의 member가 반환된다. 그렇기 때문에 제거하는것이 좋다.
-                                                                                                     
-                                                                                                     ### 결론
-                                                                                                     
-                                                                                                     양방향의 장점은 반대방향으로 객체 그래프 탐색이 가능하다는 것뿐이다. 단방향 매핑만으로도 테이블과 객체의 연관관계 매핑은 완료된다. 양방향을 사용하려면 객체 양쪽에서 관리가 필요하다.
-                                                                                                     
-                                                                                                     중요한 점은 비지니스 중요도를 생각해서 연관관계의 주인을 정하면 안된다. 단지 외래 키 관리자 정도의 의미를 부여해야 한다. 그리고 서로를 호출하지 않게 (무한루프) 조심해야 한다.
+ - 양방향: 양쪽 모두 서로 참조 하는 것
+ - 단방향: 한쪽만 참조하는 것
+ - 연관관계의 주인: 객체를 양방향 연관관계로 만들면 연관관계의 주인을 정해야 한다.
+ 
+ 참조를 통한 연관관계는 언제나 단방향이다. 양방향으로 만들고 싶으면 각자 단방향 한 개씩 총 2개를 만들어야 한다.
+ 
+ ### 객체 연관관계 vs 테이블 연관관계
+ 
+ - 객체 연관관계: 객체는 참조로 연관관계를 맺는다.
+ - 테이블 연관관계: 테이블은 외래 키로 연관관계를 맺는다.
+ 
+ ### 객체 관계 매핑
+ 
+ @JoinColumn: 조인 컬럼은 외래키를 매핑할 때 사용한다. 
+ 
+ 이거를 생략을 하면 기본전략을 사용한다.
+ 
+ 기본전략: 필드명 + (언더바) + 참조하는 테이블의 컬럼명
+ 
+ ```java
+ @ManyToOne
+ private Team team;
+ 
+ team_TEAM_ID
+ ```
+ 
+ ### 조회
+ 
+ - 객체 그래프 탐색
+ 
+ ```java
+ member.getTeam();
+ ```
+ 
+ member와 연관된 team 엔티티를 조회할 수 있다.
+ 
+ - 객체 지향 쿼리 사용
+ 
+ ```java
+ String jpql = "select m from Member m join m.team t where t.name=:teamName
+ ```
+ 
+ 실제 수행되는 SQL 문보다 간결하게 쓸 수 있다.
+ 
+ ### 양방향 연관관계
+ 
+ Member.class
+ 
+ ```java
+ @ManyToOne
+ @JoinColumn(name="TEAM_ID")
+ private Team team;
+ ```
+ 
+ Team.class
+ 
+ ```java
+ @OneToMany(mappedBy="team")
+ private List<Member> members = new ArrayList<>();
+ ```
+ 
+ 팀과 회원은 일대다 관계이므로 컬렉션을 추가했다. 
+ 
+ ### 연관관계의 주인
+ 
+ 양방향은 서로 다른 단방향 두개 이므로 엄밀히 보면 양방향 연관관계는 없다. 하지만 앞서 언급한 것 처럼 디비 테이블은 외래 키 하나로 양방향 연관관계를 표현할 수 있다.
+ 
+ 객체 단방향 매핑에서는 연관관계를 관리하는 부분이 한 곳이기 때문에 이 참조로 외래키를 관리하면 되었지만 양방향에서는 참조가 두 곳이므로 차이가 발생한다. 그렇기 때문에 한 곳을 정해서 외래키를 관리하게 해야하는데 이것이 연관관계의 주인이라고 한다.
+ 
+ 연관관계의 주인만이 디비 연관관계에 매핑되고 외래 키를 관리(등록 수정 삭제)할 수 있다. → 주인이 아닌 쪽에 mappedBy 설정.
+ 
+ Member 가 외래 키를 관리하면 Member 테이블 (자기 테이블) 에 있는 외래 키를 관리하면 된다. 하지만 Team이 외래 키를 관리하면 물리적으로 다른 테이블에 있는 외래 키를 관리해야 한다. 주인이 아닌 쪽은 읽기만 가능하고 외래 키 변경은 할 수 없다.
+ 
+ 참고로 항상 다 쪽이 외래키를 가진다. 그렇기 때문에 @ManyToOne에는 mappedBy 속성이 없다.
+ 
+ ### 양방향의 주의점
+ 
+ ```java
+ team.getMembers().add(member1);
+ ```
+ 
+ 주인이 아닌 쪽에 값을 입력하면 무시된다. 
+ 
+ 흔히 하는 실수는 연관관계의 주인에는 값을 입력하지 않고 주인이 아닌쪽에 값을 입력하는 것이다. 
+ 
+ ```java
+ Memeber member = new Member("...");
+ 
+ Team team = new Team("...");
+ team.getMembers().add(member);
+ ```
+ 
+ 디비조회를 해보면 member의 team은 null이다. 연관관계의 주인이 아닌쪽에서만 값을 지정했기 때문이다.
+ 
+ ### 실제 쓰임새
+ 
+ 객체 관점에서는 양쪽 방향에 값을 다 입력해주어야 안전하다. JPA를 사용하지 않고 코드 단에서만 테스트할 때 문제가 발생한다. 그렇기 때문에 코드를 작성할 때는 양쪽 다 해주자.
+ 
+ ### 연관관계 편의 메서드
+ 
+ 양쪽 다 설정을 해주어야 하는 상황에서 실수로 빼먹을 수 있다. 그렇기 때문에 setter 메서드에서 편의메서드를 작성한다.
+ 
+ ```java
+ public void setTeam(Team team) {
+    this.team = team;
+    team.getMembers().add(this);
+ }
+ ```
+ 
+ 라고만 생각하면 오산이다. (버그가 있다)
+ 
+ ```java
+ public void setTeam(Team team) {
+    if (this.team != null) {
+        this.team.getMembers().remove(this);
+    }
+    this.team = team;
+    team.getMembers().add(this);
+ }
+ ```
+ 
+ 바로 위처럼 삭제되지 않은 연관관계를 제거하는것이 빠졌다. 기존의 관계가 있다면 그것을 먼저 끊어주고나서 새로운 관계를 맺어야한다.
+ 
+ 그렇기 때문에 객체에서 양방향 관계를 사용하면 로직을 견고하게 작성해야 한다. 위의 예제에서 team은 연관관계의 주인이 아니기 때문에 디비에 반영이 되지는 않는다. 연관관계의 주인인 member가 team을 참조하게 바뀌었으므로 정상반영이 되기는 한다. 하지만 반영이후 영속성 컨텍스트가 살아있는 상태에서 team의 getMember를 하면 기존의 member가 반환된다. 그렇기 때문에 제거하는것이 좋다.
+ 
+ ### 결론
+ 
+ 양방향의 장점은 반대방향으로 객체 그래프 탐색이 가능하다는 것뿐이다. 단방향 매핑만으로도 테이블과 객체의 연관관계 매핑은 완료된다. 양방향을 사용하려면 객체 양쪽에서 관리가 필요하다.
+ 
+ 중요한 점은 비지니스 중요도를 생각해서 연관관계의 주인을 정하면 안된다. 단지 외래 키 관리자 정도의 의미를 부여해야 한다. 그리고 서로를 호출하지 않게 (무한루프) 조심해야 한다.
+ 
+ 
+ ## 6장 다양한 연관관계 매핑
+ 
+ 엔티티의 연관관계를 만들 때 고려해야할 3가지
+ 
+ - 다중성
+ - 단방향, 양방향
+ - 연관관계의 주인
+ 
+ ### 다중성
+ 
+ @ManyToOne, @OneToMany, @OneToOne, @ManyToMany
+ 
+ 실무에서 다대다는 거의 사용하지 않는다.
+ 
+ ### 일 대 다 단방향 매핑?
+ 
+ 일 대 다 단방향 매핑은 반대쪽 테이블에 있는 외래 키를 관리하게 된다. 
+ 
+ ```java
+ @OneToMany
+ @JoinColumn(name="TEAM_ID")
+ private List<Member> members =new ArrayList();
+ ```
+ 
+ 일대다 단방향 매핑은 @JoinColumn을 명시하지 않으면 JPA가 연결테이블을 만들어버린다. (조인테이블 자동생성)
+ 
+ 단점으로는 외래 키가 본인 테이블에 있으면 엔티티의 저장과 연관관계 처리를 insert SQL 한방에 끝낼 수 있는데 다른 테이블에 외래 키가 있기 때문에 update SQL이 한 번 더 필요하다.
+ 
+ → 이럴 바에 (관리하기 어려우므로) 다 대 일 양방향 매핑을 하는게 낫다.
+ 
+ ### 일 대 일
+ 
+ 일대일 관계는 양쪽이 서로 하나의 관계만 가진다. 일대일 관계에서는 어느쪽이든 외래 키를 가질 수 있다.
+ 
+ - 주 테이블에 외래 키
+ 
+ 객체지향 개발자들이 주로 사용. 주 테이블만 확인해도 대상 테이블과의 연관관계를 알 수 있다.
+ 
+ 단방향, 양방향 모두 가능하다.
+ 
+ Member.class
+ 
+ ```java
+ @OneToOne
+ @JoinColumn(name="LOCKER_ID")
+ private Locker locker;
+ ```
+ 
+ Member쪽에만 설정하면 일대일 단방향이다. 
+ 
+ 추가로 Locker쪽에도 설정해주면 일대일 양방향이다.
+ 
+ ```java
+ @OneToOne(mappedBy="locker")
+ privtae Member member;
+ ```
+ 
+ 양방향이므로 주인을 설정하면 된다.
+ 
+ 갑자기 의문점?: 일대일이면 양방향으로 하는게 더 편리하지 않을까? 대상쪽에서 주쪽을 참조할일이 아예없는 비지니스로직이라면 단방향으로 하고 그러는건가?
+ 
+ - 대상 테이블에 외래 키
+ 
+ 전통적인 디비 개발자들은 보통 대상 테이블에 외래 키를 두는 것을 선호한다. 장점은 테이블 관계를 일대일에서 일대다로 변경할 때 테이블 구조를 그대로 유지할 수 있다.
+ 
+ 일대일에서 단방향 대상 테이블매핑은 JPA가 지원하지 않는다. 
+ 
+ 양방향을 보면,
+ 
+ Member.class
+ 
+ ```java
+ @OneToOne(mappedBy="member")
+ private Locker locker;
+ ```
+ 
+ Locker.class
+ 
+ ```java
+ @OneToOne
+ @JoinColumn(name="MEMBER_ID")
+ private Member member;
+ ```
+ 
+ ### 다대다
+ 
+ 조인 테이블이 쉽게 만들어지지만 실무에서는 보통 조인 테이블에서 끝나는 것이 아니라 그 테이블에 필드가 더 필요한 경우가 많다. 이 상태에서 추가한 필드는 매핑할 수 없다. 그렇기 때문에 일대다, 다대일 관계로 풀어야한다.
+ 
+ ### 복합 기본키
+ 
+ 회원과 상품이 있을 때 둘은 다대다 관계이다. 그래서 회원_상품이라는 연결을 담당하는 엔티티를 만든다.
+ 
+ 그 엔티티의 식별자에 관한 내용
+ 
+ ```java
+ @Entity
+ @IdClass(MemberProductId.class)
+ public class MemberProduct {
+ 	@Id
+ 	@ManyToOne
+ 	@JoinColumn(name="MEMBER_ID")
+ 	private Member member;
+ 
+ 	@Id
+ 	@ManyToOne
+ 	@JoinColumn(name="PRODUCT_ID")
+ 	private Product product;
+ }
+ ```
+ 
+ MemberProductId.class
+ 
+ ```java
+ public class MemberProductId implements Serializable {
+ 	private String member;
+ 	private String product
+ 
+ 	// equals and hashcode 
+ }
+ ```
+ 
+ 회원 상품 엔티티를 보면 @IdClass를 이용해 복합 기본키를 매핑했다.
+ 
+ 복합 기본키는 JPA에서 사용하려면 별도의 식별자 클래스를 만들어야 한다. 그리고 Serializable 을 구현해야하고 equals and hashcode 메서드 구현, 기본 생성자 필요, 클래스 public 이라는 제약조건들이 있다. 그렇기 때문에 새로운 기본 키를 만드는것을 추천한다.
+ 
+ MemberProduct 라는 이름 대신 Order 라는 이름으로 변경을 하고 그 만의 @Id 를 둔다.
+ 
+ ```java
+ public class Order {
+ 	@Id @GeneratedValue
+ 	@Column(name="ORDER_ID")
+ 	private Long id;
+ 
+ 	@ManyToOne
+ 	@JoinColumn(name="MEMBER_ID")
+ 	privtae Member member;
+ 
+ 	@ManyToOne
+ 	@JoinColumn(name="PRODUCT_ID")
+ 	private Product product;
+ }
+ ```
+ 
+ 대리키를 사용함으로써 훨씬 단순해졌다. 기존의 복합 기본키를 사용하는 것은 각 테이블의 주키를 가져와서 pk, fk역할을 하는 키가 두 개 생겼었다.→식별관계
+ 
+ 하지만 지금은 그 키들을 단순히 외래 키의 역할만하게 하고 주 키를 새로 만들었다. → 비 식별 관계
